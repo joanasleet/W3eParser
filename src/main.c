@@ -103,11 +103,9 @@ int main( int argc, char* argv[] ) {
         free( flagsStr );
 
         /* write image data */
-        //unsigned char normH = (unsigned char)((float)layerHeight/9.0f * 255);
-        unsigned char normH = (unsigned char)(absHeight/256.0f * 255);
         data[3*i] = (i % 2) ? 100 : 0;
         data[3*i+1] = (flags & 0x0010) ? 255 : 0;
-        data[3*i+2] = normH;
+        data[3*i+2] = (absHeight/256.0f * 255);
     }
     printf( "Max Height: %f\n", maxHeight );
     printf( "Max Layer: %d\n", maxLayer );
