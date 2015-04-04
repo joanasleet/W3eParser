@@ -1,7 +1,7 @@
 #ifndef SERIALIZER_H
 #define SERIALIZER_H
 
-#define OUTPUT_FILE "serialized.txt"
+#define OUTPUT_FILE "image.txt"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +16,8 @@
 #define FPRINT( frmt, ... ) \
     do {                    \
         FILE* f = fopen( OUTPUT_FILE, "a+" ); \
-        fprintf( frmt, __VA_ARGS__ );         \
+        fprintf( f, frmt, __VA_ARGS__ );         \
+        if( f ) fclose( f );                  \
     } while( 0 )                              \
 
 #define OUTPUT_IMAGE "image.png"
