@@ -1,8 +1,6 @@
 #ifndef SERIALIZER_H
 #define SERIALIZER_H
 
-#define OUTPUT_FILE "image.txt"
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -12,19 +10,19 @@
 #define FREAD( n, type, file, buf )         \
     if( fread( buf, sizeof( type ), n, file ) != n ) printf( "[%d] Binary read error.\n", __LINE__ ) \
 
-#define FCLEAN() fclose( fopen( OUTPUT_FILE, "w" ) )
+#define OUTPUT_TXT "image.info"
+#define FCLEAN() fclose( fopen( OUTPUT_TXT, "w" ) )
 #define FPRINT( frmt, ... ) \
     do {                    \
-        FILE* f = fopen( OUTPUT_FILE, "a+" ); \
+        FILE* f = fopen( OUTPUT_TXT, "a+" ); \
         fprintf( f, frmt, __VA_ARGS__ );         \
         if( f ) fclose( f );                  \
     } while( 0 )                              \
 
-#define OUTPUT_IMAGE "image.png"
-#define IMG_WRITE( w, h, data ) \
+#define IMG_WRITE( file, w, h, data ) \
     do {                              \
-        int status = stbi_write_png( OUTPUT_IMAGE, w, h, 3, data, w*sizeof(unsigned char)*3 ); \
-        if( status == 0 ) printf( "Error writing image.\n" );            \
+        int status = stbi_write_png( file, w, h, 3, data, w*sizeof(unsigned char)*3 ); \
+        if( status == 0 ) printf( "Error writing image (%s).\n", file );            \
     } while( 0 )                                                         \
 
 /* int to binary string */
