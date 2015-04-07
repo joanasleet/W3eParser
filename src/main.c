@@ -130,42 +130,52 @@ int main( int argc, char* argv[] ) {
     unsigned char slope_data[w*h*3];
     for( int i=0; i<numtp; i++ ) {
 
-    	/* von Neumann neighbors */
-    	int tn_i = 3*(i-w)+2;
-	int bn_i = 3*(i+w)+2;
-	int ln_i = 3*(i-1)+2;
-	int rn_i = 3*(i+1)+2;
-	unsigned char tn = (i-w >= 0)    ? data[tn_i] : 0; // top
-	unsigned char bn = (i+w < numtp) ? data[bn_i] : 0; // bot
-	unsigned char ln = (i % w > 0)   ? data[ln_i] : 0; // left
-	unsigned char rn = (i % w < w-1) ? data[rn_i] : 0; // right
+        /* von Neumann neighbors */
+        int tn_i = 3*(i-w)+2;
+        int bn_i = 3*(i+w)+2;
+        int ln_i = 3*(i-1)+2;
+        int rn_i = 3*(i+1)+2;
+        unsigned char tn = (i-w >= 0)    ? data[tn_i] : 0; // top
+        unsigned char bn = (i+w < numtp) ? data[bn_i] : 0; // bot
+        unsigned char ln = (i % w > 0)   ? data[ln_i] : 0; // left
+        unsigned char rn = (i % w < w-1) ? data[rn_i] : 0; // right
 
-	unsigned char px = data[3*i+2]; // pixel
+        unsigned char px = data[3*i+2]; // pixel
 
-	//printf( "\t%d\n", tn );
-	//printf( "%d\t%d\t%d\n", ln, px, rn );
-	//printf( "\t%d\n\n", bn );
+        //printf( "\t%d\n", tn );
+        //printf( "%d\t%d\t%d\n", ln, px, rn );
+        //printf( "\t%d\n\n", bn );
 
-	unsigned char dtn = ABS(px-tn);
-	unsigned char dbn = ABS(px-bn);
-	unsigned char dln = ABS(px-ln);
-	unsigned char drn = ABS(px-rn);
-	//printf( "dt neighbor: ( %d, %d, %d, %d )\n\n", dtn, dbn, dln, drn );
+        unsigned char dtn = ABS(px-tn);
+        unsigned char dbn = ABS(px-bn);
+        unsigned char dln = ABS(px-ln);
+        unsigned char drn = ABS(px-rn);
+        //printf( "dt neighbor: ( %d, %d, %d, %d )\n\n", dtn, dbn, dln, drn );
 
-	unsigned char max;
-	max = MAX(dtn,dbn);
-	max = MAX(max,dln);
-	max = MAX(max,drn);
+        unsigned char max;
+        max = MAX(dtn,dbn);
+        max = MAX(max,dln);
+        max = MAX(max,drn);
 
-	maxslope = ( maxslope < max ) ? max : maxslope;
+        maxslope = ( maxslope < max ) ? max : maxslope;
 
-	unsigned char nmax = ((float)max/247.0 * 255);
-	slope_data[3*i] = nmax;
-	slope_data[3*i+1] = nmax;
-	slope_data[3*i+2] = nmax;
+        unsigned char nmax = ((float)max/247.0 * 255);
+        slope_data[3*i] = nmax;
+        slope_data[3*i+1] = nmax;
+        slope_data[3*i+2] = nmax;
     }
     printf( "MaxSlope: %d\n", maxslope );
     IMG_WRITE( "slope.png", w, h, slope_data );
+
+    unsigned char access_data[w*h*3];
+    unsigned char Ta = 32;
+    for( int i=0; i<numtp; i++ ) {
+        unsigned char access = ( slope_data[3*i] <= Ta ) ? 255 : 0;
+        access_data[3*i] = access;
+        access_data[3*i+1] = access;
+        access_data[3*i+2] = access;
+    }
+    IMG_WRITE( "access.png", w, h, access_data );
 
 
     printf( "Done.\n" );
