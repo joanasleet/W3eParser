@@ -75,7 +75,7 @@ int main( int argc, char* argv[] ) {
     unsigned char data[w*h*3];
 
     /* vertexHeight buffer */
-    float vertH[numtp];
+    char vertH[numtp];
 
     /* height data */ 
     for( int i=0; i<numtp; i++ ) {
@@ -109,7 +109,7 @@ int main( int argc, char* argv[] ) {
         /* write pixel data */
         data[3*i] = 0;                              // R
         data[3*i+1] = (flags & 0x0010) ? 255 : 0;   // G
-        vertH[i] = absHeight;                       // B ( normalized further down )
+        vertH[i] = layerHeight;                       // B ( normalized further down )
     }
     fclose( f );
     FPRINT( "Max Height: %.1f\n", maxHeight );
@@ -118,7 +118,7 @@ int main( int argc, char* argv[] ) {
     /* normalize image data */
     for( int i=0; i<numtp; i++ ) {
 
-        data[3*i+2] = ( vertH[i] / maxHeight * 255 );
+        data[3*i+2] = ( (float)vertH[i] / maxLayer* 255 );
     }
     IMG_WRITE( "heightmap.png", w, h, data );
 
@@ -168,7 +168,7 @@ int main( int argc, char* argv[] ) {
     IMG_WRITE( "slope.png", w, h, slope_data );
 
     unsigned char access_data[w*h*3];
-    unsigned char Ta = 32;
+    unsigned char Ta = 27;
     for( int i=0; i<numtp; i++ ) {
         unsigned char access = ( slope_data[3*i] <= Ta ) ? 255 : 0;
         access_data[3*i] = access;
