@@ -1,4 +1,4 @@
-#include "serializer.h"
+#include "ParserUtil.h"
 
 int main( int argc, char* argv[] ) {
 
@@ -7,126 +7,41 @@ int main( int argc, char* argv[] ) {
         return 0;
     }
 
-    char* file = argv[1];
+    const char* file = argv[1];
     printf( "Input file: %s\n", file );
 
-    FILE* f = fopen( file, "rb" );
+    /* parse file */
+    W3eData w3eData = parse( file );
+    printf( "tilepoint pointer: %p\n", w3eData.tps );
 
-    if( !f ) {
-        printf( "Cannot open %s\n", file );
-        return 1;
-    }
-    FCLEAN();
-
-    /* parse header */
-    char fid[4+1];
-    fid[4] = '\0';
-    FREAD( 4, char, f, fid );
-    FPRINT( "File ID: %s\n", fid );
-
-    int fver[1];
-    FREAD( 1, int, f, fver );
-    FPRINT( "File Version: %d\n", fver[0] );
-
-    char ts[1];
-    FREAD( 1, char, f, ts );
-    FPRINT( "Main tileset: %c\n", ts[0] );
-
-    int cts[1];
-    FREAD( 1, int, f, cts );
-    FPRINT( "Custom tileset: %d\n", cts[0] );
-
-    int a[1];
-    FREAD( 1, int, f, a );
-    FPRINT( "Ground tileset: %d\n", a[0] );
-
-    char gtsIDs[ 4*a[0]+1 ];
-    gtsIDs[4*a[0]] = '\0';
-    FREAD( 4*a[0], char, f, gtsIDs );
-    FPRINT( "Ground tileset IDs: %s\n", gtsIDs );
-
-    int b[1];
-    FREAD( 1, int, f, b );
-    FPRINT( "Cliff tileset: %d\n", b[0] );
-
-    char cltsIDs[ 4*b[0]+1 ];
-    cltsIDs[4*b[0]] = '\0';
-    FREAD( 4*b[0], char, f, cltsIDs );
-    FPRINT( "Cliff tileset IDs: %s\n", cltsIDs );
-
-    int dims[2];
-    FREAD( 2, int, f, dims );
-    FPRINT( "Map size: %dx%d\n", dims[0], dims[1] );
-
-    float center[2];
-    FREAD( 2, float, f, center );
-    FPRINT( "Center offset: (%.1f, %.1f)\n", center[0], center[1] );
-
-    /* parse tilepoints */
-    int numtp = dims[0] * dims[1];
-
-    /* max height data */
-    char maxLayer = 0;
-    float maxHeight = 0.0f;
+    int *size = w3eData.size;
+    int numtp = size[0] * size[1];
 
     /* image buffer */
-    int w = dims[0];
-    int h = dims[1];
+    int w = size[0];
+    int h = size[1];
     unsigned char data[w*h*3];
 
-    /* vertexHeight buffer */
-    char vertH[numtp];
-
-    /* height data */ 
+    /* write height map image*/ 
     for( int i=0; i<numtp; i++ ) {
 
-        short ground;
-        FREAD( 1, short, f, &ground );
+        tilepoint tp = w3eData.tps[i];
 
-        short water;
-        FREAD( 1, short, f, &water );
+        /* red is empty */
+        data[3*i] = 0;   
 
-        char flags;
-        FREAD( 1, char, f, &flags );
-        //char* flagsStr = tobin( flags ); // binary string
-        //free( flagsStr );
+        /* green shows ramps */
+        data[3*i+1] = ( tp.flags & 0x0010 ) ? 255 : 0;   
 
-        char texture;
-        FREAD( 1, char, f, &texture );
-
-        char layer;
-        FREAD( 1, char, f, &layer );
-        char layerHeight = (layer & 0x0f);
-        if( layerHeight > maxLayer ) maxLayer = layerHeight;
-
-        float absHeight = (ground-0x2000+((layer & 0x0f)-1)*0x0200)/4.0f;
-        if( absHeight > maxHeight ) maxHeight = absHeight;
-        
-        /* serialize height data */
-        //FPRINT( "( %.0f | %d )", absHeight, layerHeight );
-        //FPRINT( "%s", ( i+1 % dims[0] == 0 ) ? "\n" : " " );
-
-        /* write pixel data */
-        data[3*i] = 0;                              // R
-        data[3*i+1] = (flags & 0x0010) ? 255 : 0;   // G
-        vertH[i] = layerHeight;                       // B ( normalized further down )
-    }
-    fclose( f );
-    FPRINT( "Max Height: %.1f\n", maxHeight );
-    FPRINT( "Max Layer: %d\n", maxLayer );
-
-    /* normalize image data */
-    for( int i=0; i<numtp; i++ ) {
-
-        data[3*i+2] = ( (float)vertH[i] / maxLayer* 255 );
+        /* blue shows height */
+        data[3*i+2] = ( (float)tp.layerH/w3eData.maxLayer * 255 );
     }
     IMG_WRITE( "heightmap.png", w, h, data );
 
 #define ABS(d) (((d)>0)?(d):(-(d)))
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
-    /* slope map */
-    unsigned char maxslope = 0;
+    /* write slope map image */
     unsigned char slope_data[w*h*3];
     for( int i=0; i<numtp; i++ ) {
 
@@ -140,44 +55,39 @@ int main( int argc, char* argv[] ) {
         unsigned char ln = (i % w > 0)   ? data[ln_i] : 0; // left
         unsigned char rn = (i % w < w-1) ? data[rn_i] : 0; // right
 
-        unsigned char px = data[3*i+2]; // pixel
-
-        //printf( "\t%d\n", tn );
-        //printf( "%d\t%d\t%d\n", ln, px, rn );
-        //printf( "\t%d\n\n", bn );
+        /* pixel */
+        unsigned char px = data[3*i+2];
 
         unsigned char dtn = ABS(px-tn);
         unsigned char dbn = ABS(px-bn);
         unsigned char dln = ABS(px-ln);
         unsigned char drn = ABS(px-rn);
-        //printf( "dt neighbor: ( %d, %d, %d, %d )\n\n", dtn, dbn, dln, drn );
 
         unsigned char max;
         max = MAX(dtn,dbn);
         max = MAX(max,dln);
         max = MAX(max,drn);
 
-        maxslope = ( maxslope < max ) ? max : maxslope;
-
-        unsigned char nmax = ((float)max/247.0 * 255);
-        slope_data[3*i] = nmax;
-        slope_data[3*i+1] = nmax;
-        slope_data[3*i+2] = nmax;
+        slope_data[3*i] = max;
+        slope_data[3*i+1] = max;
+        slope_data[3*i+2] = max;
     }
-    printf( "MaxSlope: %d\n", maxslope );
     IMG_WRITE( "slope.png", w, h, slope_data );
-
+    
+    /* write access map image */
+    unsigned char ta = 27;
     unsigned char access_data[w*h*3];
-    unsigned char Ta = 27;
+    
     for( int i=0; i<numtp; i++ ) {
-        unsigned char access = ( slope_data[3*i] <= Ta ) ? 255 : 0;
+
+        unsigned char access = ( slope_data[3*i] <= ta ) ? 255 : 0;
         access_data[3*i] = access;
         access_data[3*i+1] = access;
         access_data[3*i+2] = access;
     }
     IMG_WRITE( "access.png", w, h, access_data );
 
-
+    free( w3eData.tps );
     printf( "Done.\n" );
 }
 
