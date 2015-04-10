@@ -110,6 +110,42 @@ int main( int argc, char* argv[] ) {
     }
     IMG_WRITE( "heightmap2.png", w, h, 1, heightMap2 );
 
+    /* sharpen height map */
+    unsigned char heightMapS[w*h];
+    for( int i=0; i<numtp; i++ ) {
+
+        /* copy non ramped height data */
+        //if( rampMap[i] ) {
+        //    heightMapS[i] = heightMap[i];
+        //    continue;
+        //}
+
+        /* 
+         * sharpen height data */
+
+        /* 3x3 kernel */
+        int tl = (i-w-1); int t = (i-w); int tr = (i-w+1);
+        int l = (i-1);    int px = (i);  int r = (i+1);
+        int bl = (i+w-1); int b = (i+w); int br = (i+w+1);
+
+        unsigned char tln = ((i-w) >= 0 && (i%w) > 0)      ? heightMap[tl] : 0;
+        unsigned char tn  = ((i-w) >= 0)                   ? heightMap[t]  : 0; 
+        unsigned char trn = ((i-w) >= 0 && (i%w) < w-1)    ? heightMap[tr] : 0; 
+        unsigned char ln  = ((i%w) > 0)                    ? heightMap[l]  : 0;
+        unsigned char pxn = 1                              ? heightMap[px] : 0;
+        unsigned char rn  = ((i%w) < w-1)                  ? heightMap[r]  : 0;
+        unsigned char bln = ((i+w) < numtp && (i%w) > 0)   ? heightMap[bl] : 0;
+        unsigned char bn  = ((i+w) < numtp)                ? heightMap[b]  : 0;
+        unsigned char brn = ((i+w) < numtp && (i%w) < w-1) ? heightMap[br] : 0;
+        
+        heightMapS[i] = (
+                -0.0f*tln + -1.0f*tn  + -0.0f*trn +
+                -1.0f*ln  +  5.0f*pxn + -1.0f*rn  +
+                -0.0f*bln + -1.0f*bn  + -0.0f*brn ) * (1.0f/16.0f);
+        heightMapS[i] += heightMap[i];
+    }
+    IMG_WRITE( "sharpHeightmap.png", w, h, 1, heightMapS );
+
     free( w3eData.tps );
     printf( "Done.\n" );
 }
