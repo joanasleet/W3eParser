@@ -13,11 +13,14 @@
 		printf( "[%d] Binary read error.\n", __LINE__ ); \
 	} while( 0 )			\
 
-#define IMG_WRITE( file, w, h, data ) \
+#define IMG_WRITE( file, w, h, c, data ) \
     do {                              \
-        int status = stbi_write_png( file, w, h, 3, data, w*sizeof(unsigned char)*3 ); \
+        int status = stbi_write_png( file, w, h, c, data, w*sizeof(unsigned char)*c ); \
         if( status == 0 ) printf( "Error writing image (%s).\n", file );            \
     } while( 0 )                                                         \
+
+#define ABS(d) (((d)>0)?(d):(-(d)))
+#define MAX(a,b) ((a)>(b)?(a):(b))
 
 /* int to binary string */
 char* tobin(char n) {
