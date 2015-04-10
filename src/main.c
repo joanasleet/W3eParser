@@ -85,6 +85,31 @@ int main( int argc, char* argv[] ) {
     }
     IMG_WRITE( "pathf.png", w, h, 1, pathfMap );
 
+    /* blend ramps with height map */
+    unsigned char heightMap2[w*h];
+    for( int i=0; i<numtp; i++ ) {
+
+        /* copy non ramped height data */
+        if( !rampMap[i] ) {
+            heightMap2[i] = heightMap[i];
+            continue;
+        }
+
+        /* 
+         * blur ramped height data */
+
+        /* 3x3 kernel */
+        int tl = (i-w-1); int t = (i-w); int tr = (i-w+1);
+        int l = (i-1);    int px = (i);  int r = (i+1);
+        int bl = (i+w-1); int b = (i+w); int br = (i+w+1);
+        
+        heightMap2[i] = (float)(
+                heightMap[tl] + heightMap[t] + heightMap[tr] +
+                heightMap[l]  + heightMap[px]+ heightMap[r]  +
+                heightMap[bl] + heightMap[b] + heightMap[br] ) * (1.0f/9.0f);
+    }
+    IMG_WRITE( "heightmap2.png", w, h, 1, heightMap2 );
+
     free( w3eData.tps );
     printf( "Done.\n" );
 }
