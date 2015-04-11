@@ -146,6 +146,14 @@ int main( int argc, char* argv[] ) {
     }
     IMG_WRITE( "sharpHeightmap.png", w, h, 1, heightMapS );
 
+    /* texture map */
+    unsigned char textureMap[w*h];
+    for( int i=0; i<numtp; i++ ) {
+        char tex = ( (w3eData.tps[i].flags) & 0x0f );
+        textureMap[i] = (float)tex / 8.0f * 255.0f;
+    }
+    IMG_WRITE( "textures.png", w, h, 1, textureMap );
+
     free( w3eData.tps );
     printf( "Done.\n" );
 }
