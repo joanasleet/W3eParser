@@ -7,7 +7,7 @@ CC		=	gcc
 STD 	=	c99
 
 PROFILE	=	
-LIBS	=
+LIBS	= -llept
 
 CFLAGS	=	-Wall -pedantic -g $(PROFILE) -std=$(STD) -I$(SRC)
 

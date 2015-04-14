@@ -1,6 +1,10 @@
 #include "ParserUtil.h"
+#include <leptonica/allheaders.h>
 
 int main( int argc, char* argv[] ) {
+
+    //PIX* pic = pixRead( "heightmap.png" );
+    //pixWrite( "HM.png", pic, IFF_PNG );
 
     if( argc < 2 ) {
         printf( "No input file.\n" );
@@ -16,17 +20,29 @@ int main( int argc, char* argv[] ) {
     int *size = w3eData.size;
     int numtp = size[0] * size[1];
 
-    /* image buffer */
+    /* image size */
     int w = size[0];
     int h = size[1];
-    unsigned char heightMap[w*h];
+
+    /* pixels per tilepoint */
+    int pptp = 2;
 
     /* write height map image*/ 
-    for( int i=0; i<numtp; i++ ) {
+    unsigned char heightMap[(w*pptp)*(h*pptp)];
+    for( int l=0; l<w; l++ ) {
+        for( int i=0; i<h; i++ ) {
 
-        heightMap[i] = ( (float)( w3eData.tps[i].layerH ) / ( w3eData.maxLayer ) * 255 );
+            unsigned char val = ( (float)( w3eData.tps[i].layerH ) / ( w3eData.maxLayer ) * 255 );
+            for( int k=0; k<pptp; k++ ) {
+                for( int j=0; j<pptp; j++ ) {
+                               /* tp line */    /* tp */  /* px line */ /* px */
+                    heightMap[(l*w*pptp*pptp) + (i*pptp) + (k*w*pptp)  +  (j)] = val;
+                }
+            }
+        }
     }
-    IMG_WRITE( "heightmap.png", w, h, 1, heightMap );
+    IMG_WRITE( "heightmap.png", w*pptp, h*pptp, 1, heightMap );
+    return 0;
     
     /* write ramp map */
     unsigned char rampMap[w*h];
@@ -141,7 +157,7 @@ int main( int argc, char* argv[] ) {
         heightMapS[i] = (
                 -0.0f*tln + -1.0f*tn  + -0.0f*trn +
                 -1.0f*ln  +  5.0f*pxn + -1.0f*rn  +
-                -0.0f*bln + -1.0f*bn  + -0.0f*brn ) * (1.0f/16.0f);
+                -0.0f*bln + -1.0f*bn  + -0.0f*brn ) * (1.0f/1.0f);
         heightMapS[i] += heightMap[i];
     }
     IMG_WRITE( "sharpHeightmap.png", w, h, 1, heightMapS );
