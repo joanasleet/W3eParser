@@ -19,6 +19,16 @@
         if( status == 0 ) printf( "Error writing image (%s).\n", file );            \
     } while( 0 )                                                         \
 
+#define PER_PIXEL( i, j, w, pptp, val, buf )  \
+    for( int k=0; k<pptp; k++ ) {       \
+        for( int l=0; l<pptp; l++ ) {   \
+            /* tp line */    /* tp */  /* px line */ /* px */           \
+            buf[(i*w*pptp*pptp) + (j*pptp) + (k*w*pptp)  +  (l)] = val; \
+        }                               \
+    }                                   \
+
+#define NORM( val, maxVal ) ( (float)(val)/(maxVal)*255 )
+
 #define ABS(d) (((d)>0)?(d):(-(d)))
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
@@ -142,6 +152,10 @@ W3eData parse( const char* w3eFile ) {
     fclose( f );
 
     return data;
+}
+
+/* image processing utils */
+void perPixel( unsigned char val, unsigned char *buf ) {
 }
 
 #endif

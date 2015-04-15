@@ -25,23 +25,22 @@ int main( int argc, char* argv[] ) {
     int h = size[1];
 
     /* pixels per tilepoint */
-    int pptp = 2;
+    int pptp = 8;
+
+    /* resolution */
+    int resW = w*pptp;
+    int resH = h*pptp;
 
     /* write height map image*/ 
-    unsigned char heightMap[(w*pptp)*(h*pptp)];
-    for( int l=0; l<w; l++ ) {
-        for( int i=0; i<h; i++ ) {
+    unsigned char heightMap[resW*resH];
+    for( int i=0; i<w; i++ ) {
+        for( int j=0; j<h; j++ ) {
 
-            unsigned char val = ( (float)( w3eData.tps[i].layerH ) / ( w3eData.maxLayer ) * 255 );
-            for( int k=0; k<pptp; k++ ) {
-                for( int j=0; j<pptp; j++ ) {
-                               /* tp line */    /* tp */  /* px line */ /* px */
-                    heightMap[(l*w*pptp*pptp) + (i*pptp) + (k*w*pptp)  +  (j)] = val;
-                }
-            }
+            unsigned char val = NORM( w3eData.tps[i*w+j].layerH, w3eData.maxLayer );
+            PER_PIXEL( i, j, w, pptp, val, heightMap )
         }
     }
-    IMG_WRITE( "heightmap.png", w*pptp, h*pptp, 1, heightMap );
+    IMG_WRITE( "heightmap.png", resW, resH, 1, heightMap );
     return 0;
     
     /* write ramp map */
@@ -50,7 +49,7 @@ int main( int argc, char* argv[] ) {
 
         rampMap[i] = ( w3eData.tps[i].flags & 0x0010 ) ? 255 : 0;
     }
-    IMG_WRITE( "rampMap.png", w, h, 1, rampMap );
+    IMG_WRITE( "rampmap.png", w, h, 1, rampMap );
 
     /* write slope map image */
     unsigned char slopeMap[w*h];
