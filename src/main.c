@@ -30,9 +30,10 @@ int main( int argc, char* argv[] ) {
     /* resolution */
     int resW = w*pptp;
     int resH = h*pptp;
+    int res = resW*resH;
 
     /* write height map image*/ 
-    unsigned char heightMap[resW*resH];
+    unsigned char heightMap[res];
     for( int i=0; i<w; i++ ) {
         for( int j=0; j<h; j++ ) {
 
@@ -41,29 +42,31 @@ int main( int argc, char* argv[] ) {
         }
     }
     IMG_WRITE( "heightmap.png", resW, resH, 1, heightMap );
-    return 0;
     
     /* write ramp map */
-    unsigned char rampMap[w*h];
-    for( int i=0; i<numtp; i++ ) {
+    unsigned char rampMap[res];
+    for( int i=0; i<w; i++ ) {
+        for( int j=0; j<h; j++ ) {
 
-        rampMap[i] = ( w3eData.tps[i].flags & 0x0010 ) ? 255 : 0;
+            unsigned char val = ( w3eData.tps[i*w+j].flags & 0x0010 ) ? 255 : 0;
+            PER_PIXEL( i, j, w, pptp, val, rampMap )
+        }
     }
-    IMG_WRITE( "rampmap.png", w, h, 1, rampMap );
+    IMG_WRITE( "rampmap.png", resW, resH, 1, rampMap );
 
     /* write slope map image */
-    unsigned char slopeMap[w*h];
-    for( int i=0; i<numtp; i++ ) {
+    unsigned char slopeMap[res];
+    for( int i=0; i<res; i++ ) {
 
         /* von Neumann neighbors */
-        int tn_i = (i-w);
-        int bn_i = (i+w);
+        int tn_i = (i-resW);
+        int bn_i = (i+resW);
         int ln_i = (i-1);
         int rn_i = (i+1);
-        unsigned char tn = (i-w >= 0)    ? heightMap[tn_i] : 0; // top
-        unsigned char bn = (i+w < numtp) ? heightMap[bn_i] : 0; // bot
-        unsigned char ln = (i % w > 0)   ? heightMap[ln_i] : 0; // left
-        unsigned char rn = (i % w < w-1) ? heightMap[rn_i] : 0; // right
+        unsigned char tn = (i-resW >= 0)       ? heightMap[tn_i] : 0; // top
+        unsigned char bn = (i+resW < res)      ? heightMap[bn_i] : 0; // bot
+        unsigned char ln = (i % resW > 0)      ? heightMap[ln_i] : 0; // left
+        unsigned char rn = (i % resW < resW-1) ? heightMap[rn_i] : 0; // right
 
         /* pixel */
         unsigned char px = heightMap[i];
@@ -80,29 +83,29 @@ int main( int argc, char* argv[] ) {
 
         slopeMap[i] = max;
     }
-    IMG_WRITE( "slope.png", w, h, 1, slopeMap );
+    IMG_WRITE( "slope.png", resW, resH, 1, slopeMap );
     
     /* write access map image */
     unsigned char ta = 27;
-    unsigned char accessMap[w*h];
+    unsigned char accessMap[res];
     
-    for( int i=0; i<numtp; i++ ) {
+    for( int i=0; i<res; i++ ) {
 
         accessMap[i] = ( slopeMap[i] <= ta ) ? 255 : 0;
     }
-    IMG_WRITE( "access.png", w, h, 1, accessMap);
+    IMG_WRITE( "access.png", resW, resH, 1, accessMap);
 
     /* final valid paths for pathfinding */
-    unsigned char pathfMap[w*h];
-    for( int i=0; i<numtp; i++ ) {
+    unsigned char pathMap[res];
+    for( int i=0; i<res; i++ ) {
 
-        pathfMap[i] = ( accessMap[i] || rampMap[i] ) ? 255 : 0;
+        pathMap[i] = ( accessMap[i] || rampMap[i] ) ? 255 : 0;
     }
-    IMG_WRITE( "pathf.png", w, h, 1, pathfMap );
+    IMG_WRITE( "pathmap.png", resW, resH, 1, pathMap );
 
     /* blend ramps with height map */
-    unsigned char heightMap2[w*h];
-    for( int i=0; i<numtp; i++ ) {
+    unsigned char heightMap2[res];
+    for( int i=0; i<res; i++ ) {
 
         /* copy non ramped height data */
         if( !rampMap[i] ) {
@@ -114,16 +117,28 @@ int main( int argc, char* argv[] ) {
          * blur ramped height data */
 
         /* 3x3 kernel */
-        int tl = (i-w-1); int t = (i-w); int tr = (i-w+1);
+        int tl = (i-resW-1); int t = (i-resW); int tr = (i-resW+1);
         int l = (i-1);    int px = (i);  int r = (i+1);
-        int bl = (i+w-1); int b = (i+w); int br = (i+w+1);
+        int bl = (i+resW-1); int b = (i+resW); int br = (i+resW+1);
         
         heightMap2[i] = (float)(
                 heightMap[tl] + heightMap[t] + heightMap[tr] +
                 heightMap[l]  + heightMap[px]+ heightMap[r]  +
                 heightMap[bl] + heightMap[b] + heightMap[br] ) * (1.0f/9.0f);
     }
-    IMG_WRITE( "heightmap2.png", w, h, 1, heightMap2 );
+    IMG_WRITE( "heightmapFinal.png", resW, resH, 1, heightMap2 );
+
+    /* texture map */
+    unsigned char textureMap[res];
+    for( int i=0; i<w; i++ ) {
+        for( int j=0; j<h; j++ ) {
+
+            unsigned char val = NORM( ( w3eData.tps[i*w+j].flags & 0x0f ), 8.0f );
+            PER_PIXEL( i, j, w, pptp, val, textureMap )
+        }
+    }
+    IMG_WRITE( "textures.png", resW, resH, 1, textureMap );
+    return 0;
 
     /* sharpen height map */
     unsigned char heightMapS[w*h];
@@ -161,13 +176,6 @@ int main( int argc, char* argv[] ) {
     }
     IMG_WRITE( "sharpHeightmap.png", w, h, 1, heightMapS );
 
-    /* texture map */
-    unsigned char textureMap[w*h];
-    for( int i=0; i<numtp; i++ ) {
-        char tex = ( (w3eData.tps[i].flags) & 0x0f );
-        textureMap[i] = (float)tex / 8.0f * 255.0f;
-    }
-    IMG_WRITE( "textures.png", w, h, 1, textureMap );
 
     free( w3eData.tps );
     printf( "Done.\n" );
